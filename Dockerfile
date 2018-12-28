@@ -1,17 +1,11 @@
-FROM golang:1.11
+FROM vinchauhan/my-iib:rc
 
-RUN go get 
-#RUN mkdir $GOPATH/src/github.com/vinchauhan/goiib
+MAINTAINER Chauhan.Vineet@gmail.com
 
-#COPY . $GOPATH/src/github.com/vinchauhan/goiib
+COPY $GOPATH/bin/goiib /build
 
-WORKDIR $GOPATH/src/github.com/vinchauhan/goiib
+#Add the build tool to the path
+ENV PATH="/build/:${PATH}"
 
-RUN go get .../.
 
-RUN go install
-
-VOLUME [ "/build:$GOPATH/go/src/goiib/pkg" ]
-
-COPY pkg/goiib /build
 

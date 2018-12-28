@@ -3,18 +3,17 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/vinchauhan/goiib/util"
-
 	"github.com/spf13/cobra"
+	"github.com/vinchauhan/goiib/config"
 )
 
 var compileCmd = &cobra.Command{
 	Use:   "compile",
 	Short: "Compile IIB Application/Project and prepare a bar file",
 	Run: func(cmd *cobra.Command, args []string) {
-		result, err := util.CompileProject()
+		result, err := config.CompileProject()
 		if err != nil {
-			fmt.Printf("Error Compiling the code")
+			fmt.Printf("Could not compile the Project %v", err)
 		}
 		fmt.Println(result)
 	},
