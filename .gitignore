@@ -2,3 +2,5 @@
 build.yaml
 /CustomerDatabaseJava
 /CustomerDatabaseV1
+.metadata/
+mqsiprofilecmd
