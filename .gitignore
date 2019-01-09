@@ -4,3 +4,4 @@ build.yaml
 /CustomerDatabaseV1
 .metadata/
 mqsiprofilecmd
+.vscode/

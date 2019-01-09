@@ -1,4 +1,4 @@
-# go-iib
+# goiib
 
 This is project is inspired by the iib-maven-plugin and is used to build IIB ( IBM Integration Bus) projects. The goal is to integrate this utility on the IIB CI/CD workflow. The challenge with the Maven Plugin build is that the BAR file created are somewhat FAT bars as the Maven class loader include everything in the Application project in the classpath and create an unecessay JAR file.
 
@@ -36,4 +36,4 @@ MIT
 
 # Contributor
 
-Chauhan.Vineet@gmail.com
+chauhan.vineet@gmail.com
