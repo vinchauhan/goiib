@@ -21,14 +21,14 @@ Available Commands:
 
 `compile     Compile IIB Application/Project and prepare a bar file`
 
-`help        Help about any command`
-
 `package     Package the application by applying specific bar overrides`
+
+`help        Help about any command`
 
 Flags:
   -h, --help   help for go-iib
 
-Use "go-iib [command] --help" for more information about a command.
+Use "goiib [command] --help" for more information about a command.
 
 # License
 
