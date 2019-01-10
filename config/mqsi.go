@@ -51,7 +51,7 @@ func CompileProject() ([]byte, error) {
 		barfileName:          filepath.Join(config.Project.Profiles.Profile.Properties.Workspace, config.Project.ArtifactID, "target", config.Project.ArtifactID+"-"+config.Project.Version+".bar"),
 	}
 
-	fmt.Println(mqsiCreateBar.mqsi,
+	mqsiCreateBarCmdString := fmt.Sprintln(mqsiCreateBar.mqsi,
 		mqsiCreateBar.dataOption,
 		mqsiCreateBar.workspace,
 		mqsiCreateBar.barfileOption,
@@ -64,25 +64,50 @@ func CompileProject() ([]byte, error) {
 		mqsiCreateBar.verboseOption,
 		mqsiCreateBar.tracePath,
 	)
-	cmd := exec.Command(
-		mqsiCreateBar.mqsi,
-		mqsiCreateBar.dataOption,
-		mqsiCreateBar.workspace,
-		mqsiCreateBar.barfileOption,
-		mqsiCreateBar.barfileName,
-		mqsiCreateBar.applicationOption,
-		mqsiCreateBar.artifactID,
-		mqsiCreateBar.cleanBuildOption,
-		mqsiCreateBar.deployAsSourceOption,
-		mqsiCreateBar.traceOption,
-		mqsiCreateBar.verboseOption,
-		mqsiCreateBar.tracePath+mqsiCreateBar.traceFile)
+	fmt.Printf("mqsiCreateBar command is : %s", mqsiCreateBarCmdString)
 
-	out, err := cmd.Output()
+	// fmt.Println(mqsiCreateBar.mqsi,
+	// 	mqsiCreateBar.dataOption,
+	// 	mqsiCreateBar.workspace,
+	// 	mqsiCreateBar.barfileOption,
+	// 	mqsiCreateBar.barfileName,
+	// 	mqsiCreateBar.applicationOption,
+	// 	mqsiCreateBar.artifactID,
+	// 	mqsiCreateBar.cleanBuildOption,
+	// 	mqsiCreateBar.deployAsSourceOption,
+	// 	mqsiCreateBar.traceOption,
+	// 	mqsiCreateBar.verboseOption,
+	// 	mqsiCreateBar.tracePath,
+	// )
+
+	cmd := exec.Command("/bin/bash", "-c", mqsiCreateBarCmdString)
+	//cmd := exec.Command("/bin/bash", "-C", "ls -l;wc -l")
+	cmd.Stderr = os.Stderr
+	cmd.Stdout = os.Stdout
+	err = cmd.Run()
 	if err != nil {
-		//return nil, err
-		panic(err)
+		fmt.Errorf("Couldnt not execute the program %v", err)
 	}
+
+	// cmd := exec.Command(
+	// 	mqsiCreateBar.mqsi,
+	// 	mqsiCreateBar.dataOption,
+	// 	mqsiCreateBar.workspace,
+	// 	mqsiCreateBar.barfileOption,
+	// 	mqsiCreateBar.barfileName,
+	// 	mqsiCreateBar.applicationOption,
+	// 	mqsiCreateBar.artifactID,
+	// 	mqsiCreateBar.cleanBuildOption,
+	// 	mqsiCreateBar.deployAsSourceOption,
+	// 	mqsiCreateBar.traceOption,
+	// 	mqsiCreateBar.verboseOption,
+	// 	mqsiCreateBar.tracePath+mqsiCreateBar.traceFile)
+
+	// out, err := cmd.Output()
+	// if err != nil {
+	// 	//return nil, err
+	// 	panic(err)
+	// }
 
 	//Create defalt.properties file in the /target directory to use for creating the override file.
 
@@ -100,7 +125,7 @@ func CompileProject() ([]byte, error) {
 		log.Fatalf("mqsireadbar filed with %s\n", err)
 	}
 	//fmt.Printf("%s", out)
-	return out, nil
+	return nil, nil
 
 }
 

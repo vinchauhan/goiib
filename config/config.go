@@ -7,6 +7,7 @@ type BuildConfig struct {
 		GroupID      string `yaml:"groupId"`
 		ArtifactID   string `yaml:"artifactId"`
 		Version      string `yaml:"version"`
+		MqsiPath     string `yaml:"mqsiPath"`
 		Packaging    string `yaml:"packaging"`
 		Profiles     struct {
 			Profile struct {
