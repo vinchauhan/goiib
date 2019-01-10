@@ -21,6 +21,6 @@ RUN go get -u github.com/vinchauhan/goiib && \
 
 #ENTRYPOINT ["iib_env.sh"]
 
-docker run -d -e LICENCE=accept -p 4414:4414 -p 7800:7800 \
--v /Users/vchauhan/go/src/github.com/vinchauhan/goiib:/home/iibuser/go/src/github.com/vinchauhan/goiib \
-vinchauhan/goiib:latest
+# docker run -d -e LICENCE=accept -p 4414:4414 -p 7800:7800 \
+# -v /Users/vchauhan/go/src/github.com/vinchauhan/goiib:/home/iibuser/go/src/github.com/vinchauhan/goiib \
+# vinchauhan/goiib:latest

@@ -62,46 +62,20 @@ func CompileProject() ([]byte, error) {
 		mqsiCreateBar.deployAsSourceOption,
 		mqsiCreateBar.traceOption,
 		mqsiCreateBar.verboseOption,
-		mqsiCreateBar.tracePath,
+		filepath.Join(mqsiCreateBar.tracePath, "createbar-trace.txt"),
 	)
 	fmt.Printf("mqsiCreateBar command is : %s", mqsiCreateBarCmdString)
 
-	// fmt.Println(mqsiCreateBar.mqsi,
-	// 	mqsiCreateBar.dataOption,
-	// 	mqsiCreateBar.workspace,
-	// 	mqsiCreateBar.barfileOption,
-	// 	mqsiCreateBar.barfileName,
-	// 	mqsiCreateBar.applicationOption,
-	// 	mqsiCreateBar.artifactID,
-	// 	mqsiCreateBar.cleanBuildOption,
-	// 	mqsiCreateBar.deployAsSourceOption,
-	// 	mqsiCreateBar.traceOption,
-	// 	mqsiCreateBar.verboseOption,
-	// 	mqsiCreateBar.tracePath,
-	// )
-
 	cmd := exec.Command("/bin/bash", "-c", mqsiCreateBarCmdString)
-	//cmd := exec.Command("/bin/bash", "-C", "ls -l;wc -l")
+
 	cmd.Stderr = os.Stderr
+
 	cmd.Stdout = os.Stdout
+
 	err = cmd.Run()
 	if err != nil {
-		fmt.Errorf("Couldnt not execute the program %v", err)
+		fmt.Errorf("Couldnt not execute mqsicreatebar : %v", err)
 	}
-
-	// cmd := exec.Command(
-	// 	mqsiCreateBar.mqsi,
-	// 	mqsiCreateBar.dataOption,
-	// 	mqsiCreateBar.workspace,
-	// 	mqsiCreateBar.barfileOption,
-	// 	mqsiCreateBar.barfileName,
-	// 	mqsiCreateBar.applicationOption,
-	// 	mqsiCreateBar.artifactID,
-	// 	mqsiCreateBar.cleanBuildOption,
-	// 	mqsiCreateBar.deployAsSourceOption,
-	// 	mqsiCreateBar.traceOption,
-	// 	mqsiCreateBar.verboseOption,
-	// 	mqsiCreateBar.tracePath+mqsiCreateBar.traceFile)
 
 	// out, err := cmd.Output()
 	// if err != nil {
@@ -109,21 +83,33 @@ func CompileProject() ([]byte, error) {
 	// 	panic(err)
 	// }
 
+	fmt.Println("-----------------------------------------------")
+	fmt.Println("Creating overrides properties for the developer")
+	fmt.Println("-----------------------------------------------")
+
 	//Create defalt.properties file in the /target directory to use for creating the override file.
+	mqsiReadBarCmd := fmt.Sprintln("mqsireadbar",
+		"-b",
+		mqsiCreateBar.barfileName,
+		"-r",
+	)
+
+	fmt.Printf("mqsiReadBar command to create default.properties for overide is : %s", mqsiReadBarCmd)
 
 	//start reading the createbar.txt for more verbose output
-	defaultPropCmd := exec.Command("mqsireadbar", "-b", mqsiCreateBar.barfileName, "-r")
+	defaultPropCmd := exec.Command("/bin/bash", "-c", mqsiReadBarCmd)
 
 	defaultout, defaulterr := defaultPropCmd.Output()
 	if defaulterr != nil {
 		return nil, fmt.Errorf("Could execute the command mqsireadbar and failed with %v", err)
 	}
 
-	err = ioutil.WriteFile(mqsiCreateBar.tracePath+"default.properties", []byte(defaultout), 755)
+	err = ioutil.WriteFile(filepath.Join(mqsiCreateBar.tracePath, "default.properties"), []byte(defaultout), 777)
 
 	if err != nil {
 		log.Fatalf("mqsireadbar filed with %s\n", err)
 	}
+
 	//fmt.Printf("%s", out)
 	return nil, nil
 
@@ -231,27 +217,14 @@ func ApplyBarOverrides() ([]byte, error) {
 		verboseOption:        "-v",
 		overrideOption:       "-o",
 		overridePropOption:   "-p",
-		overridesFile:        config.Project.Profiles.Profile.Properties.Workspace + config.Project.ArtifactID + "\\iibEnvSp\\" + "dev.properties",
-		overrideBarFilePath:  config.Project.Profiles.Profile.Properties.Workspace + config.Project.ArtifactID + "\\target\\iib-overrides\\",
-		overrideBarFileName:  config.Project.Profiles.Profile.Properties.Workspace + config.Project.ArtifactID + "\\target\\iib-overrides\\" + config.Project.ArtifactID + "-" + config.Project.Version + ".bar",
-		tracePath:            config.Project.Profiles.Profile.Properties.Workspace + config.Project.ArtifactID + "\\" + "target\\",
+		overridesFile:        filepath.Join(config.Project.Profiles.Profile.Properties.Workspace, config.Project.ArtifactID, "iibEnvSp", "dev.properties"),
+		overrideBarFilePath:  filepath.Join(config.Project.Profiles.Profile.Properties.Workspace, config.Project.ArtifactID, "target", "iib-overrides"),
+		overrideBarFileName:  filepath.Join(config.Project.Profiles.Profile.Properties.Workspace, config.Project.ArtifactID, "target", "iib-overrides", config.Project.ArtifactID+"-"+config.Project.Version+".bar"),
+		tracePath:            filepath.Join(config.Project.Profiles.Profile.Properties.Workspace, config.Project.ArtifactID, "target"),
 		traceFile:            "createbar.txt",
 		cleanBuildOption:     "-cleanBuild",
-		barfileName:          config.Project.Profiles.Profile.Properties.Workspace + config.Project.ArtifactID + "\\" + "target\\" + config.Project.ArtifactID + "-" + config.Project.Version + ".bar",
+		barfileName:          filepath.Join(config.Project.Profiles.Profile.Properties.Workspace, config.Project.ArtifactID, "target", config.Project.ArtifactID+"-"+config.Project.Version+".bar"),
 	}
-
-	fmt.Println(mqsiBarOverride.mqsi,
-		mqsiBarOverride.barfileOption,
-		mqsiBarOverride.barfileName,
-		mqsiBarOverride.applicationOption,
-		mqsiBarOverride.artifactID,
-		mqsiBarOverride.overrideOption,
-		mqsiBarOverride.overrideBarFileName,
-		mqsiBarOverride.overridePropOption,
-		mqsiBarOverride.overridesFile,
-		mqsiBarOverride.verboseOption,
-		mqsiBarOverride.tracePath+mqsiBarOverride.traceFile,
-	)
 
 	//Create the target directory of iib-overrides if it doesnt exits as the mqsibaroverride command doesnt create it on its own
 	CreateDirIfNotExist(mqsiBarOverride.overrideBarFilePath)
@@ -261,20 +234,22 @@ func ApplyBarOverrides() ([]byte, error) {
 
 	//Get all the file under the config.Project.Profiles.Profile.Properties.Workspace + config.Project.ArtifactID + "\\iibEnvSp\\" folder
 
-	files, walkerr := ioutil.ReadDir(config.Project.Profiles.Profile.Properties.Workspace + config.Project.ArtifactID + "\\iibEnvSp")
+	files, walkerr := ioutil.ReadDir(filepath.Join(config.Project.Profiles.Profile.Properties.Workspace, config.Project.ArtifactID, "iibEnvSp"))
 	if walkerr != nil {
-		log.Fatal(err)
+		fmt.Errorf("Could not walk the path of the iibEnvSp : %v", err)
 	}
 
 	//Run a loop to all the environment specific files.
 
 	for _, file := range files {
 		fmt.Println(file.Name())
-		// Reset Override file name to each file
-		mqsiBarOverride.overridesFile = config.Project.Profiles.Profile.Properties.Workspace + config.Project.ArtifactID + "\\iibEnvSp\\" + file.Name()
-		mqsiBarOverride.overrideBarFileName = config.Project.Profiles.Profile.Properties.Workspace + config.Project.ArtifactID + "\\target\\iib-overrides\\" + config.Project.ArtifactID + "-" + config.Project.Version + "-" + strings.Split(file.Name(), ".")[0] + ".bar"
+		//Reset Override file name to each file
 
-		fmt.Println(mqsiBarOverride.mqsi,
+		mqsiBarOverride.overridesFile = filepath.Join(config.Project.Profiles.Profile.Properties.Workspace, config.Project.ArtifactID, "iibEnvSp", file.Name())
+		mqsiBarOverride.overrideBarFileName = filepath.Join(config.Project.Profiles.Profile.Properties.Workspace, config.Project.ArtifactID, "target", "iib-overrides", config.Project.ArtifactID+"-"+config.Project.Version+"-"+strings.Split(file.Name(), ".")[0]+".bar")
+
+		mqsiApplyOverrideCmd := fmt.Sprintln(
+			mqsiBarOverride.mqsi,
 			mqsiBarOverride.barfileOption,
 			mqsiBarOverride.barfileName,
 			mqsiBarOverride.applicationOption,
@@ -284,20 +259,12 @@ func ApplyBarOverrides() ([]byte, error) {
 			mqsiBarOverride.overridePropOption,
 			mqsiBarOverride.overridesFile,
 			mqsiBarOverride.verboseOption,
-			mqsiBarOverride.tracePath+mqsiBarOverride.traceFile,
+			filepath.Join(mqsiBarOverride.tracePath, mqsiBarOverride.traceFile),
 		)
 
-		cmd := exec.Command(mqsiBarOverride.mqsi,
-			mqsiBarOverride.barfileOption,
-			mqsiBarOverride.barfileName,
-			mqsiBarOverride.applicationOption,
-			mqsiBarOverride.artifactID,
-			mqsiBarOverride.overrideOption,
-			mqsiBarOverride.overrideBarFileName,
-			mqsiBarOverride.overridePropOption,
-			mqsiBarOverride.overridesFile,
-			mqsiBarOverride.verboseOption,
-			mqsiBarOverride.tracePath+mqsiBarOverride.traceFile)
+		fmt.Printf("mqsiapplyoverride command is : %s", mqsiApplyOverrideCmd)
+
+		cmd := exec.Command("/bin/bash", "-c", mqsiApplyOverrideCmd)
 
 		out, err := cmd.Output()
 		if err != nil {
