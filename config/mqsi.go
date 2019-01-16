@@ -5,33 +5,35 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"mime/multipart"
 	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 
+	log "github.com/sirupsen/logrus"
 	yaml "gopkg.in/yaml.v2"
 )
 
 //CompileProject -cleanBuild the IIB project and creates a BAR file in the /target directory
 func CompileProject() ([]byte, error) {
 
+	log.Infof("Scanning for projects...")
+	log.Infof("")
 	config := BuildConfig{}
 	path := filepath.Join(filepath.Dir("."), "build.yaml")
 	//fmt.Println(path)
 
 	source, err := ioutil.ReadFile(path)
 	if err != nil {
-		panic(err)
+		return nil, fmt.Errorf("Failed to %v", err)
 	}
 	err = yaml.Unmarshal(source, &config)
 	if err != nil {
-		return nil, fmt.Errorf("Could not Unmarshal the build.yaml %v", err)
+		return nil, fmt.Errorf("Could not Unmarshal the build %v", err)
 	}
-	fmt.Printf("Value: %#v\n", config.Project.GroupID)
 
 	var mqsiCreateBar = &MqsiCommand{
 		mqsi:                 "mqsicreatebar",
@@ -51,6 +53,22 @@ func CompileProject() ([]byte, error) {
 		barfileName:          filepath.Join(config.Project.Profiles.Profile.Properties.Workspace, config.Project.ArtifactID, "target", config.Project.ArtifactID+"-"+config.Project.Version+".bar"),
 	}
 
+	log.Infof("------------------------------------------------------------------------")
+	log.Infof("Building " + mqsiCreateBar.artifactID + " " + mqsiCreateBar.version)
+	log.Infof("------------------------------------------------------------------------")
+	log.Infof("")
+	log.Infof("")
+
+	log.Infof("Checking for dependencies... ")
+	log.Infof("")
+
+	//Dependencies implementations
+
+	log.Infof("Looking for .project file %s", filepath.Join(config.Project.Profiles.Profile.Properties.Workspace, config.Project.ArtifactID, ".project"))
+	log.Infof("")
+
+	//projectFileBytes, err := ioutil.ReadFile(filepath.Join(config.Project.Profiles.Profile.Properties.Workspace, config.Project.ArtifactID, ".project"))
+
 	mqsiCreateBarCmdString := fmt.Sprintln(mqsiCreateBar.mqsi,
 		mqsiCreateBar.dataOption,
 		mqsiCreateBar.workspace,
@@ -62,12 +80,30 @@ func CompileProject() ([]byte, error) {
 		mqsiCreateBar.deployAsSourceOption,
 		mqsiCreateBar.traceOption,
 		mqsiCreateBar.verboseOption,
-		filepath.Join(mqsiCreateBar.tracePath, "createbar-trace.txt"),
+		filepath.Join(mqsiCreateBar.tracePath, "createbartrace.txt"),
 	)
-	fmt.Printf("mqsiCreateBar command is : %s", mqsiCreateBarCmdString)
 
-	cmd := exec.Command("/bin/bash", "-c", mqsiCreateBarCmdString)
+	// Set default shell and option for linux
+	shell, option, cmdSeperator := "/bin/bash", "-c", ";"
+	//Detect if Windows
+	if runtime.GOOS == "windows" {
 
+		log.Infof("Detected Windows environment")
+		shell, option, cmdSeperator = "cmd", "/c", "&&"
+
+	}
+
+	finalCmd := fmt.Sprintln("mqsiprofile", cmdSeperator, mqsiCreateBarCmdString)
+
+	fmt.Println("")
+	fmt.Println("generated mqsiCommand follows...")
+	fmt.Println("---------------------")
+
+	fmt.Printf("%s", finalCmd)
+
+	fmt.Println("---------------------")
+
+	cmd := exec.Command(shell, option, finalCmd)
 	cmd.Stderr = os.Stderr
 
 	cmd.Stdout = os.Stdout
@@ -77,15 +113,10 @@ func CompileProject() ([]byte, error) {
 		fmt.Errorf("Couldnt not execute mqsicreatebar : %v", err)
 	}
 
-	// out, err := cmd.Output()
-	// if err != nil {
-	// 	//return nil, err
-	// 	panic(err)
-	// }
-
-	fmt.Println("-----------------------------------------------")
-	fmt.Println("Creating overrides properties for the developer")
-	fmt.Println("-----------------------------------------------")
+	log.Infof("-----------------------------------------------")
+	log.Infof("Creating overrides properties for the developer")
+	log.Infof("-----------------------------------------------")
+	fmt.Println("")
 
 	//Create defalt.properties file in the /target directory to use for creating the override file.
 	mqsiReadBarCmd := fmt.Sprintln("mqsireadbar",
@@ -96,8 +127,13 @@ func CompileProject() ([]byte, error) {
 
 	fmt.Printf("mqsiReadBar command to create default.properties for overide is : %s", mqsiReadBarCmd)
 
+	fmt.Println("")
+	fmt.Println("")
+
 	//start reading the createbar.txt for more verbose output
-	defaultPropCmd := exec.Command("/bin/bash", "-c", mqsiReadBarCmd)
+	finalmqsiReadBarCmd := fmt.Sprintln("mqsiprofile", cmdSeperator, mqsiReadBarCmd)
+
+	defaultPropCmd := exec.Command(shell, option, finalmqsiReadBarCmd)
 
 	defaultout, defaulterr := defaultPropCmd.Output()
 	if defaulterr != nil {
@@ -109,6 +145,10 @@ func CompileProject() ([]byte, error) {
 	if err != nil {
 		log.Fatalf("mqsireadbar filed with %s\n", err)
 	}
+
+	log.Infof("-----------------------------------------------")
+	log.Infof("BUILD SUCCESS")
+	log.Infof("-----------------------------------------------")
 
 	//fmt.Printf("%s", out)
 	return nil, nil
@@ -196,11 +236,11 @@ func ApplyBarOverrides() ([]byte, error) {
 
 	source, err := ioutil.ReadFile(path)
 	if err != nil {
-		panic(err)
+		return nil, fmt.Errorf("Failed to %v", err)
 	}
 	err = yaml.Unmarshal(source, &config)
 	if err != nil {
-		panic(err)
+		return nil, fmt.Errorf("Could not Unmarshal the build %v", err)
 	}
 	//fmt.Printf("Value: %#v\n", config.Project.GroupID)
 
