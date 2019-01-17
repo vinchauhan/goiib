@@ -308,7 +308,7 @@ func ApplyBarOverrides() ([]byte, error) {
 
 		out, err := cmd.Output()
 		if err != nil {
-			log.Fatalf("cmd.Run() failed with %s\n", err)
+			log.Fatalf("cmd.Run() failed with %v\n", err)
 		}
 		fmt.Printf("%s", out)
 	}
