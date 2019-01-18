@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/vinchauhan/goiib/config"
 )
@@ -12,11 +13,16 @@ var packageCmd = &cobra.Command{
 	Use:   "package",
 	Short: "Package the application by applying specific bar overrides",
 	Run: func(cmd *cobra.Command, args []string) {
-		result, err := config.ApplyBarOverrides()
+		log.Infof("Scanning for projects...")
+		log.Infof("")
+
+		_, err := config.ApplyBarOverrides()
 		if err != nil {
 			fmt.Printf("Error running the bar override")
 		}
-		fmt.Println(result)
+		log.Infof("-----------------------------------------------")
+		log.Infof("BUILD SUCCESS")
+		log.Infof("-----------------------------------------------")
 	},
 }
 

@@ -17,11 +17,14 @@ import (
 	yaml "gopkg.in/yaml.v2"
 )
 
+var (
+	// Set default shell and option for linux
+	shell, option, cmdSeperator = "/bin/bash", "-c", ";"
+)
+
 //CompileProject -cleanBuild the IIB project and creates a BAR file in the /target directory
 func CompileProject() ([]byte, error) {
 
-	log.Infof("Scanning for projects...")
-	log.Infof("")
 	config := BuildConfig{}
 	path := filepath.Join(filepath.Dir("."), "build.yaml")
 	//fmt.Println(path)
@@ -34,6 +37,8 @@ func CompileProject() ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("Could not Unmarshal the build %v", err)
 	}
+
+	log.Info("---goiib compile command @ ", config.Project.ArtifactID, " ---")
 
 	var mqsiCreateBar = &MqsiCommand{
 		mqsi:                 "mqsicreatebar",
@@ -62,12 +67,10 @@ func CompileProject() ([]byte, error) {
 	log.Infof("Checking for dependencies... ")
 	log.Infof("")
 
-	//Dependencies implementations
+	//TODO : Dependencies implementations
 
 	log.Infof("Looking for .project file %s", filepath.Join(config.Project.Profiles.Profile.Properties.Workspace, config.Project.ArtifactID, ".project"))
 	log.Infof("")
-
-	//projectFileBytes, err := ioutil.ReadFile(filepath.Join(config.Project.Profiles.Profile.Properties.Workspace, config.Project.ArtifactID, ".project"))
 
 	mqsiCreateBarCmdString := fmt.Sprintln(mqsiCreateBar.mqsi,
 		mqsiCreateBar.dataOption,
@@ -83,8 +86,6 @@ func CompileProject() ([]byte, error) {
 		filepath.Join(mqsiCreateBar.tracePath, "createbartrace.txt"),
 	)
 
-	// Set default shell and option for linux
-	shell, option, cmdSeperator := "/bin/bash", "-c", ";"
 	//Detect if Windows
 	if runtime.GOOS == "windows" {
 
@@ -93,7 +94,7 @@ func CompileProject() ([]byte, error) {
 
 	}
 
-	finalCmd := fmt.Sprintln("mqsiprofile", cmdSeperator, mqsiCreateBarCmdString)
+	finalCmd := fmt.Sprintln(". mqsiprofile", cmdSeperator, mqsiCreateBarCmdString)
 
 	fmt.Println("")
 	fmt.Println("generated mqsiCommand follows...")
@@ -113,9 +114,7 @@ func CompileProject() ([]byte, error) {
 		fmt.Errorf("Couldnt not execute mqsicreatebar : %v", err)
 	}
 
-	log.Infof("-----------------------------------------------")
-	log.Infof("Creating overrides properties for the developer")
-	log.Infof("-----------------------------------------------")
+	log.Infof("Creating target/iib-overrides/default.properties for the developer")
 	fmt.Println("")
 
 	//Create defalt.properties file in the /target directory to use for creating the override file.
@@ -125,37 +124,178 @@ func CompileProject() ([]byte, error) {
 		"-r",
 	)
 
-	fmt.Printf("mqsiReadBar command to create default.properties for overide is : %s", mqsiReadBarCmd)
-
-	fmt.Println("")
-	fmt.Println("")
-
 	//start reading the createbar.txt for more verbose output
-	finalmqsiReadBarCmd := fmt.Sprintln("mqsiprofile", cmdSeperator, mqsiReadBarCmd)
 
-	defaultPropCmd := exec.Command(shell, option, finalmqsiReadBarCmd)
+	finalmqsiReadBarCmd := fmt.Sprintln(". mqsiprofile", cmdSeperator, mqsiReadBarCmd)
+
+	fmt.Println("")
+	fmt.Println("generated mqsiCommand follows...")
+	fmt.Println("---------------------")
+
+	fmt.Printf("%s", finalmqsiReadBarCmd)
+
+	fmt.Println("---------------------")
+
+	defaultPropCmd := exec.Command(shell, option, ".mqsiprofile"+cmdSeperator+finalmqsiReadBarCmd)
 
 	defaultout, defaulterr := defaultPropCmd.Output()
 	if defaulterr != nil {
 		return nil, fmt.Errorf("Could execute the command mqsireadbar and failed with %v", err)
 	}
 
-	err = ioutil.WriteFile(filepath.Join(mqsiCreateBar.tracePath, "default.properties"), []byte(defaultout), 777)
+	err = ioutil.WriteFile(filepath.Join(mqsiCreateBar.tracePath, "default.properties"), []byte(defaultout), 0755)
 
 	if err != nil {
 		log.Fatalf("mqsireadbar filed with %s\n", err)
 	}
 
-	log.Infof("-----------------------------------------------")
-	log.Infof("BUILD SUCCESS")
-	log.Infof("-----------------------------------------------")
-
-	//fmt.Printf("%s", out)
 	return nil, nil
 
 }
 
-//This function will Deploy the bar file on the broker and push the binary to Nexus
+//ApplyBarOverrides will apply the bar override and create the overriden bar file in target/iib-overrides
+func ApplyBarOverrides() ([]byte, error) {
+
+	config := BuildConfig{}
+
+	path := filepath.Join(filepath.Dir("."), "build.yaml")
+
+	source, err := ioutil.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to %v", err)
+	}
+	err = yaml.Unmarshal(source, &config)
+	if err != nil {
+		return nil, fmt.Errorf("Could not Unmarshal the build %v", err)
+	}
+
+	//Compile the bar file before applying the overrides.
+	CompileProject()
+
+	var mqsiBarOverride = &MqsiCommand{
+		mqsi:                 "mqsiapplybaroverride",
+		dataOption:           "-data",
+		workspace:            config.Project.Profiles.Profile.Properties.Workspace,
+		artifactID:           config.Project.ArtifactID,
+		version:              config.Project.Version,
+		barfileOption:        "-b",
+		applicationOption:    "-k",
+		deployAsSourceOption: "-deployAsSource",
+		traceOption:          "-trace",
+		verboseOption:        "-v",
+		overrideOption:       "-o",
+		overridePropOption:   "-p",
+		overridesFile:        filepath.Join(config.Project.Profiles.Profile.Properties.Workspace, config.Project.ArtifactID, "iibEnvSp", "dev.properties"),
+		overrideBarFilePath:  filepath.Join(config.Project.Profiles.Profile.Properties.Workspace, config.Project.ArtifactID, "target", "iib-overrides"),
+		overrideBarFileName:  filepath.Join(config.Project.Profiles.Profile.Properties.Workspace, config.Project.ArtifactID, "target", "iib-overrides", config.Project.ArtifactID+"-"+config.Project.Version+".bar"),
+		tracePath:            filepath.Join(config.Project.Profiles.Profile.Properties.Workspace, config.Project.ArtifactID, "target"),
+		traceFile:            "createbar.txt",
+		cleanBuildOption:     "-cleanBuild",
+		barfileName:          filepath.Join(config.Project.Profiles.Profile.Properties.Workspace, config.Project.ArtifactID, "target", config.Project.ArtifactID+"-"+config.Project.Version+".bar"),
+	}
+
+	//Create the target directory of iib-overrides if it doesnt exits as the mqsibaroverride command doesnt create it on its own
+	CreateDirIfNotExist(mqsiBarOverride.overrideBarFilePath)
+
+	//Get all the file under the config.Project.Profiles.Profile.Properties.Workspace + config.Project.ArtifactID + "\\iibEnvSp\\" folder
+	files, walkerr := ioutil.ReadDir(filepath.Join(config.Project.Profiles.Profile.Properties.Workspace, config.Project.ArtifactID, "iibEnvSp"))
+
+	if walkerr != nil {
+		log.Errorf("Could not walk the path of the iibEnvSp : %v", err)
+	}
+
+	//Run a loop to all the environment specific files.
+
+	for _, file := range files {
+
+		//Reset Override file name to each file
+		mqsiBarOverride.overridesFile = filepath.Join(config.Project.Profiles.Profile.Properties.Workspace, config.Project.ArtifactID, "iibEnvSp", file.Name())
+		mqsiBarOverride.overrideBarFileName = filepath.Join(config.Project.Profiles.Profile.Properties.Workspace, config.Project.ArtifactID, "target", "iib-overrides", config.Project.ArtifactID+"-"+config.Project.Version+"-"+strings.Split(file.Name(), ".")[0]+".bar")
+
+		mqsiApplyOverrideCmd := fmt.Sprintln(
+			mqsiBarOverride.mqsi,
+			mqsiBarOverride.barfileOption,
+			mqsiBarOverride.barfileName,
+			mqsiBarOverride.applicationOption,
+			mqsiBarOverride.artifactID,
+			mqsiBarOverride.overrideOption,
+			mqsiBarOverride.overrideBarFileName,
+			mqsiBarOverride.overridePropOption,
+			mqsiBarOverride.overridesFile,
+			mqsiBarOverride.verboseOption,
+			filepath.Join(mqsiBarOverride.tracePath, mqsiBarOverride.traceFile),
+		)
+
+		fmt.Println("")
+
+		log.Info("---goiib package command @ ", config.Project.ArtifactID, " ---")
+
+		log.Infof("Starting to generate override bar for : %s", file.Name())
+
+		fmt.Println("")
+		fmt.Println("generated mqsiCommand follows...")
+
+		fmt.Println("---------------------")
+
+		fmt.Printf("%s", mqsiApplyOverrideCmd)
+
+		fmt.Println("---------------------")
+
+		cmd := exec.Command(shell, option, ". mqsiprofile"+cmdSeperator+mqsiApplyOverrideCmd)
+
+		cmd.Stderr = os.Stderr
+
+		cmd.Stdout = os.Stdout
+
+		err = cmd.Run()
+		if err != nil {
+			fmt.Errorf("Couldnt not execute mqsicreatebar : %v", err)
+		}
+
+		// out, err := cmd.Output()
+		// if err != nil {
+		// 	log.Fatalf("cmd.Run() failed with %v\n", err)
+		// }
+		//fmt.Printf("%s", out)
+	}
+
+	//start reading the createbar.txt for more verbose output
+
+	return nil, nil
+
+}
+
+// newfileUploadRequest creates a new file upload http request with optional extra params
+func newfileUploadRequest(uri string, params map[string]string, paramName, path string) (*http.Request, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	part, err := writer.CreateFormFile(paramName, filepath.Base(path))
+	if err != nil {
+		return nil, err
+	}
+	_, err = io.Copy(part, file)
+
+	for key, val := range params {
+		_ = writer.WriteField(key, val)
+	}
+	err = writer.Close()
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", uri, body)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	req.SetBasicAuth("admin", "admin123")
+	return req, err
+}
+
+//DeployProject will Deploy the bar file on the broker and push the binary to Nexus
 func DeployProject() (string, error) {
 
 	config := BuildConfig{}
@@ -194,130 +334,6 @@ func DeployProject() (string, error) {
 	}
 	defer resp.Body.Close()
 	return resp.Status, nil
-}
-
-// Creates a new file upload http request with optional extra params
-func newfileUploadRequest(uri string, params map[string]string, paramName, path string) (*http.Request, error) {
-	file, err := os.Open(path)
-	if err != nil {
-		return nil, err
-	}
-	defer file.Close()
-
-	body := &bytes.Buffer{}
-	writer := multipart.NewWriter(body)
-	part, err := writer.CreateFormFile(paramName, filepath.Base(path))
-	if err != nil {
-		return nil, err
-	}
-	_, err = io.Copy(part, file)
-
-	for key, val := range params {
-		_ = writer.WriteField(key, val)
-	}
-	err = writer.Close()
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("POST", uri, body)
-	req.Header.Set("Content-Type", writer.FormDataContentType())
-	req.SetBasicAuth("admin", "admin123")
-	return req, err
-}
-
-//ApplyBarOverrides will apply the bar override and create the overriden bar file in target/iib-overrides
-func ApplyBarOverrides() ([]byte, error) {
-
-	config := BuildConfig{}
-
-	path := filepath.Join(filepath.Dir("."), "build.yaml")
-	//fmt.Println(path)
-
-	source, err := ioutil.ReadFile(path)
-	if err != nil {
-		return nil, fmt.Errorf("Failed to %v", err)
-	}
-	err = yaml.Unmarshal(source, &config)
-	if err != nil {
-		return nil, fmt.Errorf("Could not Unmarshal the build %v", err)
-	}
-	//fmt.Printf("Value: %#v\n", config.Project.GroupID)
-
-	var mqsiBarOverride = &MqsiCommand{
-		mqsi:                 "mqsiapplybaroverride",
-		dataOption:           "-data",
-		workspace:            config.Project.Profiles.Profile.Properties.Workspace,
-		artifactID:           config.Project.ArtifactID,
-		version:              config.Project.Version,
-		barfileOption:        "-b",
-		applicationOption:    "-k",
-		deployAsSourceOption: "-deployAsSource",
-		traceOption:          "-trace",
-		verboseOption:        "-v",
-		overrideOption:       "-o",
-		overridePropOption:   "-p",
-		overridesFile:        filepath.Join(config.Project.Profiles.Profile.Properties.Workspace, config.Project.ArtifactID, "iibEnvSp", "dev.properties"),
-		overrideBarFilePath:  filepath.Join(config.Project.Profiles.Profile.Properties.Workspace, config.Project.ArtifactID, "target", "iib-overrides"),
-		overrideBarFileName:  filepath.Join(config.Project.Profiles.Profile.Properties.Workspace, config.Project.ArtifactID, "target", "iib-overrides", config.Project.ArtifactID+"-"+config.Project.Version+".bar"),
-		tracePath:            filepath.Join(config.Project.Profiles.Profile.Properties.Workspace, config.Project.ArtifactID, "target"),
-		traceFile:            "createbar.txt",
-		cleanBuildOption:     "-cleanBuild",
-		barfileName:          filepath.Join(config.Project.Profiles.Profile.Properties.Workspace, config.Project.ArtifactID, "target", config.Project.ArtifactID+"-"+config.Project.Version+".bar"),
-	}
-
-	//Create the target directory of iib-overrides if it doesnt exits as the mqsibaroverride command doesnt create it on its own
-	CreateDirIfNotExist(mqsiBarOverride.overrideBarFilePath)
-
-	// mqsiapplybaroverride can be applied multiple time based on how many environment specific files
-	// are in the config.Project.Profiles.Profile.Properties.Workspace + config.Project.ArtifactID + "\\iibEnvSp\\" folder
-
-	//Get all the file under the config.Project.Profiles.Profile.Properties.Workspace + config.Project.ArtifactID + "\\iibEnvSp\\" folder
-
-	files, walkerr := ioutil.ReadDir(filepath.Join(config.Project.Profiles.Profile.Properties.Workspace, config.Project.ArtifactID, "iibEnvSp"))
-	if walkerr != nil {
-		fmt.Errorf("Could not walk the path of the iibEnvSp : %v", err)
-	}
-
-	//Run a loop to all the environment specific files.
-
-	for _, file := range files {
-		fmt.Println(file.Name())
-		//Reset Override file name to each file
-
-		mqsiBarOverride.overridesFile = filepath.Join(config.Project.Profiles.Profile.Properties.Workspace, config.Project.ArtifactID, "iibEnvSp", file.Name())
-		mqsiBarOverride.overrideBarFileName = filepath.Join(config.Project.Profiles.Profile.Properties.Workspace, config.Project.ArtifactID, "target", "iib-overrides", config.Project.ArtifactID+"-"+config.Project.Version+"-"+strings.Split(file.Name(), ".")[0]+".bar")
-
-		mqsiApplyOverrideCmd := fmt.Sprintln(
-			mqsiBarOverride.mqsi,
-			mqsiBarOverride.barfileOption,
-			mqsiBarOverride.barfileName,
-			mqsiBarOverride.applicationOption,
-			mqsiBarOverride.artifactID,
-			mqsiBarOverride.overrideOption,
-			mqsiBarOverride.overrideBarFileName,
-			mqsiBarOverride.overridePropOption,
-			mqsiBarOverride.overridesFile,
-			mqsiBarOverride.verboseOption,
-			filepath.Join(mqsiBarOverride.tracePath, mqsiBarOverride.traceFile),
-		)
-
-		fmt.Printf("mqsiapplyoverride command is : %s", mqsiApplyOverrideCmd)
-
-		cmd := exec.Command("/bin/bash", "-c", mqsiApplyOverrideCmd)
-
-		out, err := cmd.Output()
-		if err != nil {
-			log.Fatalf("cmd.Run() failed with %v\n", err)
-		}
-		fmt.Printf("%s", out)
-	}
-
-	//start reading the createbar.txt for more verbose output
-
-	fmt.Printf("%s", nil)
-	return nil, nil
-
 }
 
 //CreateDirIfNotExist will create the passed dir string
