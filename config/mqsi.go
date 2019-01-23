@@ -23,21 +23,14 @@ var (
 )
 
 //CompileProject -cleanBuild the IIB project and creates a BAR file in the /target directory
-func CompileProject() ([]byte, error) {
+func CompileProject(buildFile string) ([]byte, error) {
 
-	config := BuildConfig{}
-	path := filepath.Join(filepath.Dir("."), "build.yaml")
-	//fmt.Println(path)
+	//build a config object
+	config, err := createConfig(buildFile)
 
-	source, err := ioutil.ReadFile(path)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to %v", err)
+		return nil, fmt.Errorf("Could not create the config instance : %v", err)
 	}
-	err = yaml.Unmarshal(source, &config)
-	if err != nil {
-		return nil, fmt.Errorf("Could not Unmarshal the build %v", err)
-	}
-
 	log.Info("---goiib compile command @ ", config.Project.ArtifactID, " ---")
 
 	var mqsiCreateBar = &MqsiCommand{
@@ -111,7 +104,7 @@ func CompileProject() ([]byte, error) {
 
 	err = cmd.Run()
 	if err != nil {
-		fmt.Errorf("Couldnt not execute mqsicreatebar : %v", err)
+		return nil, fmt.Errorf("Error running the command mqsicreatebar : %v", err)
 	}
 
 	log.Infof("Creating target/iib-overrides/default.properties for the developer")
@@ -140,7 +133,7 @@ func CompileProject() ([]byte, error) {
 
 	defaultout, defaulterr := defaultPropCmd.Output()
 	if defaulterr != nil {
-		return nil, fmt.Errorf("Could execute the command mqsireadbar and failed with %v", err)
+		return nil, fmt.Errorf("Error running the command mqsireadbar : %v", err)
 	}
 
 	err = ioutil.WriteFile(filepath.Join(mqsiCreateBar.tracePath, "default.properties"), []byte(defaultout), 0755)
@@ -154,23 +147,20 @@ func CompileProject() ([]byte, error) {
 }
 
 //ApplyBarOverrides will apply the bar override and create the overriden bar file in target/iib-overrides
-func ApplyBarOverrides() ([]byte, error) {
+func ApplyBarOverrides(buildFile string) ([]byte, error) {
 
-	config := BuildConfig{}
+	config, err := createConfig(buildFile)
 
-	path := filepath.Join(filepath.Dir("."), "build.yaml")
-
-	source, err := ioutil.ReadFile(path)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to %v", err)
-	}
-	err = yaml.Unmarshal(source, &config)
-	if err != nil {
-		return nil, fmt.Errorf("Could not Unmarshal the build %v", err)
+		return nil, fmt.Errorf("Could not start the override : %v", err)
 	}
 
 	//Compile the bar file before applying the overrides.
-	CompileProject()
+	_, err = CompileProject(buildFile)
+
+	if err != nil {
+		return nil, fmt.Errorf("Could not compile the project : %v", err)
+	}
 
 	var mqsiBarOverride = &MqsiCommand{
 		mqsi:                 "mqsiapplybaroverride",
@@ -249,7 +239,7 @@ func ApplyBarOverrides() ([]byte, error) {
 
 		err = cmd.Run()
 		if err != nil {
-			fmt.Errorf("Couldnt not execute mqsicreatebar : %v", err)
+			return nil, fmt.Errorf("Error running the command mqsiapplybaroverride : %v", err)
 		}
 
 		// out, err := cmd.Output()

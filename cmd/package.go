@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"fmt"
 	"os"
 
 	log "github.com/sirupsen/logrus"
@@ -16,13 +15,17 @@ var packageCmd = &cobra.Command{
 		log.Infof("Scanning for projects...")
 		log.Infof("")
 
-		_, err := config.ApplyBarOverrides()
+		_, err := config.ApplyBarOverrides(buildFile)
 		if err != nil {
-			fmt.Printf("Error running the bar override")
+			log.Errorf("goiib error : %v", err)
+			log.Infof("-----------------------------------------------")
+			log.Infof("BUILD FAILED")
+			log.Infof("-----------------------------------------------")
+		} else {
+			log.Infof("-----------------------------------------------")
+			log.Infof("BUILD SUCCESS")
+			log.Infof("-----------------------------------------------")
 		}
-		log.Infof("-----------------------------------------------")
-		log.Infof("BUILD SUCCESS")
-		log.Infof("-----------------------------------------------")
 	},
 }
 

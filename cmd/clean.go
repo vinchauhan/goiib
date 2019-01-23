@@ -39,6 +39,11 @@ func init() {
 	log.SetFormatter(Formatter)
 
 	RootCmd.AddCommand(cleanCmd)
+}
+
+// CleanProject will clean the target directory
+func CleanProject(targetPath string) error {
+	log.Info("---goiib clean command @ ", buildConfig.Project.ArtifactID, " ---")
 
 	path := filepath.Join(filepath.Dir("."), "build.yaml")
 
@@ -51,13 +56,8 @@ func init() {
 		log.Fatalf("goiib error : Could not Unmarshal the build %v", err)
 	}
 
-}
-
-// CleanProject will clean the target directory
-func CleanProject(targetPath string) error {
-	log.Info("---goiib clean command @ ", buildConfig.Project.ArtifactID, " ---")
 	log.Infof("Deleting %s", targetPath)
-	err := os.RemoveAll(targetPath)
+	err = os.RemoveAll(targetPath)
 	if err != nil {
 		return fmt.Errorf("Error Occured: %v", err)
 	}

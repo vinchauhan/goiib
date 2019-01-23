@@ -1,8 +1,7 @@
 package cmd
 
 import (
-	"fmt"
-
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/vinchauhan/goiib/config"
 )
@@ -11,11 +10,17 @@ var deployCmd = &cobra.Command{
 	Use:   "deploy",
 	Short: "Deploy an IIB Application/Library and store binary on Sonatype Nexus Repository",
 	Run: func(cmd *cobra.Command, args []string) {
-		result, err := config.DeployProject()
+		_, err := config.DeployProject()
 		if err != nil {
-			fmt.Printf("Error Deploying the code")
+			log.Errorf("goiib error : %v", err)
+			log.Infof("-----------------------------------------------")
+			log.Infof("BUILD FAILED")
+			log.Infof("-----------------------------------------------")
+		} else {
+			log.Infof("-----------------------------------------------")
+			log.Infof("BUILD SUCCESS")
+			log.Infof("-----------------------------------------------")
 		}
-		fmt.Println(result)
 	},
 }
 
