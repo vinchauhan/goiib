@@ -1,41 +1,12 @@
 package config
 
-//BuildConfig struct used to store the build.yaml config file
-// type BuildConfig struct {
-// 	Project struct {
-// 		ModelVersion string `yaml:"modelVersion"`
-// 		GroupID      string `yaml:"groupId"`
-// 		ArtifactID   string `yaml:"artifactId"`
-// 		Version      string `yaml:"version"`
-// 		MqsiPath     string `yaml:"mqsiPath"`
-// 		Packaging    string `yaml:"packaging"`
-// 		Profiles     struct {
-// 			Profile struct {
-// 				ID         string `yaml:"id"`
-// 				Activation struct {
-// 					ActiveByDefault bool `yaml:"activeByDefault"`
-// 				} `yaml:"activation"`
-// 				Properties struct {
-// 					Workspace                          string `yaml:"workspace"`
-// 					InitialDeletes                     string `yaml:"initialDeletes"`
-// 					UnpackIibDependenciesIntoWorkspace bool   `yaml:"unpackIibDependenciesIntoWorkspace"`
-// 					FailOnInvalidProperties            bool   `yaml:"failOnInvalidProperties"`
-// 					UseClassloaders                    bool   `yaml:"useClassloaders"`
-// 					FailOnInvalidClassloader           bool   `yaml:"failOnInvalidClassloader"`
-// 					CreateOrPackageBar                 string `yaml:"createOrPackageBar"`
-// 					CompleteDeployment                 bool   `yaml:"completeDeployment"`
-// 					TimeoutSecs                        int    `yaml:"timeoutSecs"`
-// 					MqsiCreateBarDeployAsSource        bool   `yaml:"mqsiCreateBarDeployAsSource"`
-// 				} `yaml:"properties"`
-// 			} `yaml:"profile"`
-// 			Dependencies struct {
-// 				GroupID    string `yaml:"groupId"`
-// 				ArtifactID string `yaml:"artifactId"`
-// 				Version    string `yaml:"version"`
-// 			} `yaml:"dependencies"`
-// 		} `yaml:"profiles"`
-// 	} `yaml:"project"`
-// }
+import (
+	"fmt"
+	"io/ioutil"
+	"path/filepath"
+
+	yaml "gopkg.in/yaml.v2"
+)
 
 type BuildConfig struct {
 	Project struct {
@@ -97,4 +68,22 @@ type MqsiCommand struct {
 	traceFile            string
 	cleanBuildOption     string
 	barfileName          string
+}
+
+func createConfig(buildFile string) (BuildConfig, error) {
+
+	config := BuildConfig{}
+	path := filepath.Join(filepath.Dir("."), "build.yaml")
+	//fmt.Println(path)
+
+	source, err := ioutil.ReadFile(path)
+	if err != nil {
+		return config, fmt.Errorf("Failed to %v", err)
+	}
+	err = yaml.Unmarshal(source, &config)
+	if err != nil {
+		return config, fmt.Errorf("Could not Unmarshal the build %v", err)
+	}
+
+	return config, nil
 }
