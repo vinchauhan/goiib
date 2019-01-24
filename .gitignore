@@ -1,7 +1,6 @@
-/exp
-build.yaml
-/CustomerDatabaseJava
-/CustomerDatabaseV1
+exp
+CustomerDatabaseJava/
+CustomerDatabaseV1/
 .metadata/
 mqsiprofilecmd
 .vscode/
