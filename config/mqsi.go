@@ -23,10 +23,10 @@ var (
 )
 
 //CompileProject -cleanBuild the IIB project and creates a BAR file in the /target directory
-func CompileProject(buildFile string) ([]byte, error) {
+func CompileProject(buildFilePath string) ([]byte, error) {
 
 	//build a config object
-	config, err := createConfig(buildFile)
+	config, err := createConfig(buildFilePath)
 
 	if err != nil {
 		return nil, fmt.Errorf("Could not create the config instance : %v", err)
@@ -147,16 +147,16 @@ func CompileProject(buildFile string) ([]byte, error) {
 }
 
 //ApplyBarOverrides will apply the bar override and create the overriden bar file in target/iib-overrides
-func ApplyBarOverrides(buildFile string) ([]byte, error) {
+func ApplyBarOverrides(buildFilePath string) ([]byte, error) {
 
-	config, err := createConfig(buildFile)
+	config, err := createConfig(buildFilePath)
 
 	if err != nil {
 		return nil, fmt.Errorf("Could not start the override : %v", err)
 	}
 
 	//Compile the bar file before applying the overrides.
-	_, err = CompileProject(buildFile)
+	_, err = CompileProject(buildFilePath)
 
 	if err != nil {
 		return nil, fmt.Errorf("Could not compile the project : %v", err)

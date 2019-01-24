@@ -12,10 +12,10 @@ func TestCreateConfig(t *testing.T) {
 	t.Parallel()
 
 	Convey("Given a build file", t, func() {
-		buildFile := "build.yaml"
+		buildFilePath := "../test/build.yaml"
 		Convey("When config object is created", func() {
 
-			config, err := createConfig(buildFile)
+			config, err := createConfig(buildFilePath)
 
 			if err != nil {
 				fmt.Println(err)

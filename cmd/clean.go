@@ -19,10 +19,9 @@ var cleanCmd = &cobra.Command{
 	Short: "Clean the target directory just like mvn clean",
 	Run: func(cmd *cobra.Command, args []string) {
 
-		targetDirPath := filepath.Join(buildConfig.Project.Profiles.Profile.Properties.Workspace, buildConfig.Project.ArtifactID, "target")
-		err := CleanProject(targetDirPath)
+		err := CleanProject(buildFilePath)
 		if err != nil {
-			fmt.Printf("% v : Error in cleaning the target dir %s", err, targetDirPath)
+			fmt.Printf("% v : Error in cleaning the target dir", err)
 		}
 		log.Info("--------------------------------------------------")
 		log.Info("BUILD SUCCESS")
@@ -42,25 +41,25 @@ func init() {
 }
 
 // CleanProject will clean the target directory
-func CleanProject(targetPath string) error {
+func CleanProject(buildFilePath string) error {
 	log.Info("---goiib clean command @ ", buildConfig.Project.ArtifactID, " ---")
 
-	path := filepath.Join(filepath.Dir("."), "build.yaml")
-
-	source, err := ioutil.ReadFile(path)
+	source, err := ioutil.ReadFile(buildFilePath)
 	if err != nil {
-		log.Fatalf("goiib error : %v", err)
+		return fmt.Errorf("goiib error : Error occured in reading the file : %s %v", buildFilePath, err)
 	}
 	err = yaml.Unmarshal(source, &buildConfig)
 	if err != nil {
-		log.Fatalf("goiib error : Could not Unmarshal the build %v", err)
+		return fmt.Errorf("goiib error : Could not Unmarshal the build %v", err)
 	}
 
-	log.Infof("Deleting %s", targetPath)
-	err = os.RemoveAll(targetPath)
+	targetDirPath := filepath.Join(buildConfig.Project.Profiles.Profile.Properties.Workspace, buildConfig.Project.ArtifactID, "target")
+
+	log.Infof("Deleting %s", targetDirPath)
+	err = os.RemoveAll(targetDirPath)
 	if err != nil {
 		return fmt.Errorf("Error Occured: %v", err)
 	}
-	log.Infof("Deleted %s", targetPath)
+	log.Infof("Deleted %s", targetDirPath)
 	return nil
 }
