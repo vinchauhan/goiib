@@ -10,7 +10,7 @@ var deployCmd = &cobra.Command{
 	Use:   "deploy",
 	Short: "Deploy an IIB Application/Library and store binary on Sonatype Nexus Repository",
 	Run: func(cmd *cobra.Command, args []string) {
-		_, err := config.DeployProject()
+		_, err := config.DeployProject(buildFilePath)
 		if err != nil {
 			log.Errorf("goiib error : %v", err)
 			log.Infof("-----------------------------------------------")

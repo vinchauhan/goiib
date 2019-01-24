@@ -285,7 +285,7 @@ func newfileUploadRequest(uri string, params map[string]string, paramName, path 
 }
 
 //DeployProject will Deploy the bar file on the broker and push the binary to Nexus
-func DeployProject() (string, error) {
+func DeployProject(buildFilePath string) (string, error) {
 
 	config, err := createConfig(buildFilePath)
 
