@@ -14,7 +14,6 @@ import (
 	"strings"
 
 	log "github.com/sirupsen/logrus"
-	yaml "gopkg.in/yaml.v2"
 )
 
 var (
@@ -281,42 +280,26 @@ func newfileUploadRequest(uri string, params map[string]string, paramName, path 
 
 	req, err := http.NewRequest("POST", uri, body)
 	req.Header.Set("Content-Type", writer.FormDataContentType())
-	req.SetBasicAuth("admin", "admin123")
+	req.SetBasicAuth("", "")
 	return req, err
 }
 
 //DeployProject will Deploy the bar file on the broker and push the binary to Nexus
 func DeployProject() (string, error) {
 
-	config := BuildConfig{}
-
-	path := filepath.Join(filepath.Dir("."), "build.yaml")
-	//fmt.Println(path)
-
-	source, err := ioutil.ReadFile(path)
-	if err != nil {
-		panic(err)
-	}
-	err = yaml.Unmarshal(source, &config)
-	if err != nil {
-		panic(err)
-	}
+	config, err := createConfig(buildFilePath)
 
 	extraParams := map[string]string{
-		"raw.directory":       "com/aa/esoa/iib",
+		"raw.directory":       "com/spingular/iib",
 		"raw.asset1.filename": config.Project.ArtifactID + "-" + config.Project.Version + ".bar",
 	}
 
 	fileName := config.Project.Profiles.Profile.Properties.Workspace + config.Project.ArtifactID + "\\target\\iib-overrides\\" + config.Project.ArtifactID + "-" + config.Project.Version + "-dev" + ".bar"
 
-	request, err := newfileUploadRequest("http://localhost:4444/service/rest/beta/components?repository=esoa-releases", extraParams, "raw.asset1", fileName)
+	request, err := newfileUploadRequest("http://localhost:4444/service/rest/beta/components?repository=spingular-releases", extraParams, "raw.asset1", fileName)
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	// request.SetBasicAuth("admin", "admin123")
-	// //req.Header.Set("Accept-Encoding", "multipart/form-data")
-	// request.Header.Set("Content-Type", "multipart/form-data")
 
 	resp, err := http.DefaultClient.Do(request)
 	if err != nil {
