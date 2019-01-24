@@ -2,6 +2,8 @@ package config
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"testing"
 
 	. "github.com/smartystreets/goconvey/convey"
@@ -12,7 +14,7 @@ func TestCreateConfig(t *testing.T) {
 	t.Parallel()
 
 	Convey("Given a build file", t, func() {
-		buildFilePath := "../test/build.yaml"
+		buildFilePath := filepath.Join(os.Getenv("GOPATH"), "src", "github.com", "vinchauhan", "goiib", "test", "build.yaml")
 		Convey("When config object is created", func() {
 
 			config, err := createConfig(buildFilePath)
