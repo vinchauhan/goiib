@@ -15,7 +15,7 @@ var packageCmd = &cobra.Command{
 		log.Infof("Scanning for projects...")
 		log.Infof("")
 
-		_, err := config.ApplyBarOverrides(buildFile)
+		_, err := config.ApplyBarOverrides(buildFilePath)
 		if err != nil {
 			log.Errorf("goiib error : %v", err)
 			log.Infof("-----------------------------------------------")

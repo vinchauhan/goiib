@@ -3,7 +3,6 @@ package config
 import (
 	"fmt"
 	"io/ioutil"
-	"path/filepath"
 
 	yaml "gopkg.in/yaml.v2"
 )
@@ -70,13 +69,13 @@ type MqsiCommand struct {
 	barfileName          string
 }
 
-func createConfig(buildFile string) (BuildConfig, error) {
+func createConfig(buildFilePath string) (BuildConfig, error) {
 
 	config := BuildConfig{}
-	path := filepath.Join(filepath.Dir("."), "build.yaml")
+	//path := filepath.Join(filepath.Dir("."), "build.yaml")
 	//fmt.Println(path)
 
-	source, err := ioutil.ReadFile(path)
+	source, err := ioutil.ReadFile(buildFilePath)
 	if err != nil {
 		return config, fmt.Errorf("Failed to %v", err)
 	}

@@ -6,7 +6,7 @@ import (
 	"github.com/vinchauhan/goiib/config"
 )
 
-var buildFile = "build.yaml"
+var buildFilePath = "./build.yaml"
 
 var compileCmd = &cobra.Command{
 	Use:   "compile",
@@ -16,7 +16,7 @@ var compileCmd = &cobra.Command{
 		log.Infof("Scanning for projects...")
 		log.Infof("")
 
-		_, err := config.CompileProject(buildFile)
+		_, err := config.CompileProject(buildFilePath)
 		if err != nil {
 			log.Errorf("goiib error : %v", err)
 			log.Infof("-----------------------------------------------")
