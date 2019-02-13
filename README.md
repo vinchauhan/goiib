@@ -36,4 +36,4 @@ MIT
 
 # Contributor
 
-chauhan.vineet@gmail.com
+Vineet Chauhan
